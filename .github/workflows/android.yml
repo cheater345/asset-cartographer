@@ -20,7 +20,18 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - uses: android-actions/setup-android@v3
+      # GitHub runners ship the Android SDK preinstalled. The third-party
+      # setup-android action now fails because Google removed the legacy
+      # "tools" package it tries to install, so we skip it and only top up
+      # missing components, best effort.
+      - name: Ensure Android SDK components (best effort)
+        continue-on-error: true
+        run: |
+          SM="$(command -v sdkmanager || echo "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager")"
+          if [ -x "$SM" ]; then
+            yes | "$SM" --licenses > /dev/null 2>&1 || true
+            "$SM" "platforms;android-35" "build-tools;35.0.0" > /dev/null 2>&1 || true
+          fi
 
       - uses: gradle/actions/setup-gradle@v4
         with:
