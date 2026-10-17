@@ -19,6 +19,11 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+
+    buildFeatures {
+        // Generates the IRemoteFs binder for the read-only user service.
+        aidl = true
+    }
 }
 
 dependencies {

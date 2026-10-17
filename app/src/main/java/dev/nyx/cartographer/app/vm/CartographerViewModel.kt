@@ -41,7 +41,7 @@ class CartographerViewModel(app: Application) : AndroidViewModel(app) {
 
     private data class OpResult(val detail: String, val artifacts: List<File> = emptyList())
 
-    private val shell = ReadOnlyShell()
+    private val shell = ReadOnlyShell(app)
     private val inspector = DeviceInspector(shell)
     private val safWalker = SafWalker(app)
     private val scanner = ApkScanner()
@@ -53,6 +53,11 @@ class CartographerViewModel(app: Application) : AndroidViewModel(app) {
 
     init {
         refreshJournal()
+    }
+
+    override fun onCleared() {
+        shell.shutdown()
+        super.onCleared()
     }
 
     fun selectTab(tab: Tab) {

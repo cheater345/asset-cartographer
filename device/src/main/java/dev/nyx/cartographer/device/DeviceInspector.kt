@@ -1,33 +1,39 @@
 package dev.nyx.cartographer.device
 
 import dev.nyx.cartographer.core.FileRecord
+import java.time.Instant
 
 /**
- * Turns read-only shell output into structured records. Parses toybox
- * `ls -la` output (ISO timestamps, Android 10+).
+ * Turns [CartographerUserService]'s record format into structured entries:
+ * `name|sizeBytes|modifiedAtMillis|d|f`, one per line, with names escaped
+ * (`%7C`, `%0A`) on the service side.
  */
 class DeviceInspector(private val shell: ReadOnlyShell) {
-
-    private val lsLine = Regex(
-        """([\-dlcbps][rwxstST\-]{9}[.+]?)\s+\d+\s+(\S+)\s+(\S+)\s+(\d+)\s+(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})\s+(.+)"""
-    )
 
     suspend fun list(dir: String): List<FileRecord> {
         val result = shell.exec(ReadOnlyShell.Op.ListDir(dir))
         if (result.exitCode != 0) return emptyList()
 
-        return result.stdout.lineSequence().mapNotNull { line ->
-            val match = lsLine.matchEntire(line.trim()) ?: return@mapNotNull null
-            val (perms, owner, group, size, date, time, name) = match.destructured
-            if (name == "." || name == "..") return@mapNotNull null
+        return result.stdout.lineSequence()
+            .map { it.trim() }
+            .filter { it.isNotEmpty() && it != CartographerUserService.TRUNCATED }
+            .mapNotNull { line ->
+                val parts = line.split('|')
+                if (parts.size < 4) return@mapNotNull null
 
-            FileRecord(
-                path = "$dir/$name",
-                sizeBytes = size.toLongOrNull() ?: -1L,
-                owner = "$owner:$group",
-                isDirectory = perms.startsWith("d"),
-                modifiedAt = "$date $time",
-            )
-        }.toList()
+                val name = unescape(parts[0])
+                val millis = parts[2].toLongOrNull() ?: 0L
+
+                FileRecord(
+                    path = "$dir/$name",
+                    sizeBytes = parts[1].toLongOrNull() ?: -1L,
+                    isDirectory = parts[3] == "d",
+                    modifiedAt = Instant.ofEpochMilli(millis).toString(),
+                )
+            }
+            .toList()
     }
+
+    private fun unescape(value: String): String =
+        value.replace("%0A", "\n").replace("%7C", "|")
 }

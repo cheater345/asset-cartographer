@@ -28,7 +28,7 @@ without ever writing to, injecting into, or modifying the target.
 |-----------|-------------------------------------------------------------|
 | `core`    | serializable models (`BundleRecord`, `FileRecord`, `JournalEntry`) |
 | `unityfs` | UnityFS preamble parser + APK scanner                       |
-| `device`  | Shizuku shell (typed, read-only) + SAF walker               |
+| `device`  | Shizuku user service (typed, read-only) + SAF walker        |
 | `report`  | journal, JSON/CSV exports, rollback                         |
 | `app`     | Compose UI                                                  |
 
